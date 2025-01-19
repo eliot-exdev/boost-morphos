@@ -76,6 +76,10 @@
 
 #include <boost/filesystem/detail/header.hpp> // must be the last #include
 
+#ifndef O_DIRECTORY
+#	define O_DIRECTORY 0
+#endif
+
 namespace fs = boost::filesystem;
 using boost::system::error_code;
 using boost::system::system_category;

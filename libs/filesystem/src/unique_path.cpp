@@ -21,6 +21,9 @@
 #include <cerrno>
 #include <stddef.h>
 #include <unistd.h>
+#ifdef __MORPHOS__
+#undef bind
+#endif
 #include <fcntl.h>
 
 #if !defined(BOOST_FILESYSTEM_DISABLE_ARC4RANDOM)

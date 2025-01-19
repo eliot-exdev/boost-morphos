@@ -41,6 +41,8 @@
 //#  define BOOST_THREAD_WAIT_BUG boost::posix_time::microseconds(1000)
 #elif defined(__IBMCPP__) || defined(_AIX)
 #  define BOOST_THREAD_AIX
+#elif defined(__MORPHOS__)
+#  define BOOST_THREAD_POSIX 
 #elif defined(__amigaos__)
 #  define BOOST_THREAD_AMIGAOS
 #elif defined(__QNXNTO__)

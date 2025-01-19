@@ -36,6 +36,10 @@
 #include <unistd.h>
 #endif
 
+#ifdef __MORPHOS__
+#undef bind
+#endif
+
 // The 'environ' should be declared in some cases. E.g. Linux man page says:
 // (This variable must be declared in the user program, but is declared in 
 // the header file unistd.h in case the header files came from libc4 or libc5, 
