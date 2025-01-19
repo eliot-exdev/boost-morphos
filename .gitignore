@@ -1,1 +1,4 @@
 .idea
+project-config.jam
+b2
+tools/build/src/engine/b2
