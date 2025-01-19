@@ -6,6 +6,7 @@ The following libraries should work as minimum:
 - locale
 - iostreams
 - filesystem
+- program_options
 
 # Cross compile on linux
 
