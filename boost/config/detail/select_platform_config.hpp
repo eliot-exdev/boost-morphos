@@ -61,6 +61,10 @@
 // IBM AIX
 #  define BOOST_PLATFORM_CONFIG "boost/config/platform/aix.hpp"
 
+#elif defined(__morphos__)
+// MorphOS
+#  define BOOST_PLATFORM_CONFIG "boost/config/platform/morphos.hpp"
+
 #elif defined(__amigaos__)
 // AmigaOS
 #  define BOOST_PLATFORM_CONFIG "boost/config/platform/amigaos.hpp"
