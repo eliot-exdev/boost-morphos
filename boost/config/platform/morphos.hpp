@@ -5,7 +5,7 @@
 
 //  See http://www.boost.org for most recent version.
 
-#define BOOST_PLATFORM "MorphOs"
+#define BOOST_PLATFORM "MorphOS"
 
 #ifdef __cplusplus
     #include <cstdlib>

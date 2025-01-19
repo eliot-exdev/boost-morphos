@@ -51,6 +51,7 @@
 #elif !defined(__APPLE__) && \
     (!defined(__OpenBSD__) || BOOST_OS_BSD_OPEN >= BOOST_VERSION_NUMBER(4, 4, 0)) && \
     !defined(__ANDROID__) && \
+	 !defined(__MORPHOS__) && \
     !defined(__VXWORKS__)
 #include <sys/statvfs.h>
 #define BOOST_STATVFS statvfs

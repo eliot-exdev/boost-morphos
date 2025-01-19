@@ -159,6 +159,8 @@ int mapped_file_impl::alignment()
     SYSTEM_INFO info;
     ::GetSystemInfo(&info);
     return static_cast<int>(info.dwAllocationGranularity);
+#elif __MORPHOS__
+	return 16;
 #else
     return static_cast<int>(sysconf(_SC_PAGESIZE));
 #endif
