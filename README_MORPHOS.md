@@ -8,7 +8,7 @@ The following libraries should work as minimum:
 - filesystem
 - program_options
 
-# Cross compile on linux
+# Cross-compile on linux for MorphOS
 
 Requires a working cross-compiler and the MorphOS SDK (version 3.18).  
 See [Cross-Compiler Setup](https://bigfoot.morphos-team.net/files/setup-cross-sdk.sh) to setup it on your linux machine.  
