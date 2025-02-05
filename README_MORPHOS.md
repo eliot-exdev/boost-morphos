@@ -1,12 +1,20 @@
 # boost-morphos
 
 **Goal:** Port an up-to-date boost library to MorphOS (ppc).  
-The following libraries should work as minimum:  
+The following libraries are build and should work:  
+- asio
+- atomic
+- beast
+- filesystem
+- iostreams
 - chrono
 - locale
-- iostreams
-- filesystem
 - program_options
+- random
+- system
+- test
+- url
+- uuid
 
 # Cross-compile on linux for MorphOS
 
@@ -15,19 +23,23 @@ See [Cross-Compiler Setup](https://bigfoot.morphos-team.net/files/setup-cross-sd
 
 ```shell
     ./bootstrap.sh
-    ./b2 cxxflags="-std=c++17" cflags="-noixemul -D__morphos__" toolset=gcc-power link=static threading=single variant=release optimization=speed \
+    ./b2 cxxflags="-std=c++17" cflags="-noixemul" toolset=gcc-power link=static threading=single variant=release optimization=speed \
             --user-config=user-config.jam \
             --build-dir=/tmp/boost-build \
             --prefix=/tmp/boost-install \
+            --with-asio \
             --with-atomic \
-            --with-chrono \
-            --with-program_options \
-            --with-system \
-            --with-random \
-            --with-test \
-            --with-locale \
+            --with-beast \
             --with-filesystem \
             --with-iostreams \
+            --with-chrono \
+            --with-locale \
+            --with-program_options \
+            --with-random \
+            --with-system \
+            --with-test \
+            --with-url \
+            --with-uuid \
             install
 ```
 
