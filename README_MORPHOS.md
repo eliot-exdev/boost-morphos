@@ -1,5 +1,10 @@
 # boost-morphos
 
+author: Andre Geisler <andre@exdev.de>  
+source origin: [boost.org](https://archives.boost.io/release/1.87.0/source/boost_1_87_0.tar.gz)  
+source MorphOS: [github](https://github.com/eliot-exdev/boost-morphos)  
+license: Boost Software License - Version 1.0  
+
 **Goal:** Port an up-to-date boost library to MorphOS (ppc).  
 The following libraries are build and should work:  
 - asio
@@ -44,3 +49,9 @@ See [Cross-Compiler Setup](https://bigfoot.morphos-team.net/files/setup-cross-sd
 ```
 
 You need to set --user-config, --build-dir and --prefix to your paths on your system.  
+
+You can also use the Makefile.mos:
+
+```shell
+    make -f Makefile.mos
+```
