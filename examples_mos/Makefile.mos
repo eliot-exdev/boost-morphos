@@ -1,0 +1,24 @@
+CC=/gg/bin/ppc-morphos-gcc-11
+CXX=/gg/bin/ppc-morphos-g++-11
+
+C_FLAGS=-Ofast -noixemul -mcpu=G4 -maltivec -mabi=altivec -DNDEBUG -D__MORPHOS__
+CXX_FLAGS=-std=c++17
+
+LD_FLAGS=-L/tmp/boost-1.87.0-morphos-ppc/lib -lboost_filesystem
+INCLUDES=-I/tmp/boost-1.87.0-morphos-ppc/include
+
+all: example-filesystem-cpp17 example-filesystem-boost
+
+#--- build example-filesystem-boost: ---#
+example-filesystem-boost: example-filesystem-boost.cpp
+	$(CXX) -o ${@} $(^) ${C_FLAGS} ${CXX_FLAGS} ${INCLUDES} ${LD_FLAGS}
+
+#--- build example-filesystem-cpp17: ---#
+example-filesystem-cpp17: example-filesystem-cpp17.cpp
+	$(CXX) -o ${@} $(^) ${C_FLAGS} ${CXX_FLAGS}
+
+#--- clean ---#
+.PHONY: clean
+clean:
+	rm -f example-filesystem-boost
+	rm -f example-filesystem-cpp17

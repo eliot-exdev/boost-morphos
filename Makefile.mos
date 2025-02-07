@@ -35,6 +35,7 @@ install: boost
 	cp README.md ${PREFIX}/
 	cp README_MORPHOS.md ${PREFIX}/
 	cp LICENSE_1_0.txt ${PREFIX}/
+	cp -r examples_mos ${PREFIX}/
 
 
 package: install
