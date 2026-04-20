@@ -239,6 +239,31 @@ using boost::system::system_category;
 
 #endif
 
+#ifdef __MORPHOS__
+#include <proto/dos.h>
+#include <dos/dos.h>
+#include <time.h>
+
+int mos_utime(const char *path, time_t new_time)
+{
+    struct DateStamp ds;
+    struct tm *t = gmtime(&new_time);
+
+    if (!t)
+        return -1;
+
+    // Conversion vers le format DateStamp
+    ds.ds_Days  = (new_time / 86400) + 2922; // Offset AmigaDOS depuis 1/1/1978
+    ds.ds_Minute = (t->tm_hour * 60) + t->tm_min;
+    ds.ds_Tick = t->tm_sec * TICKS_PER_SECOND;
+
+    if (!SetFileDate(path, &ds))
+        return -1;
+
+    return 0;
+}
+#endif
+
 namespace boost {
 namespace filesystem {
 namespace detail {
@@ -622,6 +647,7 @@ namespace {
 //! Flushes buffered data and attributes written to the file to permanent storage
 inline int full_sync(int fd)
 {
+#ifndef __MORPHOS__
     while (true)
     {
 #if defined(__APPLE__) && defined(__MACH__) && defined(F_FULLFSYNC)
@@ -643,7 +669,7 @@ inline int full_sync(int fd)
 
         break;
     }
-
+#endif
     return 0;
 }
 
@@ -3513,6 +3539,7 @@ void create_directory_symlink(path const& to, path const& from, system::error_co
 {
     if (ec)
         ec->clear();
+#ifndef __MORPHOS__
 
 #if defined(BOOST_POSIX_API)
     int err = ::symlink(to.c_str(), from.c_str());
@@ -3534,6 +3561,8 @@ void create_directory_symlink(path const& to, path const& from, system::error_co
         emit_error(BOOST_ERRNO, to, from, ec, "boost::filesystem::create_directory_symlink");
     }
 #endif
+	
+#endif
 }
 
 BOOST_FILESYSTEM_DECL
@@ -3541,7 +3570,7 @@ void create_hard_link(path const& to, path const& from, error_code* ec)
 {
     if (ec)
         ec->clear();
-
+#ifndef __MORPHOS__
 #if defined(BOOST_POSIX_API)
     int err = ::link(to.c_str(), from.c_str());
     if (BOOST_UNLIKELY(err < 0))
@@ -3563,6 +3592,7 @@ void create_hard_link(path const& to, path const& from, error_code* ec)
         emit_error(BOOST_ERRNO, to, from, ec, "boost::filesystem::create_hard_link");
     }
 #endif
+#endif
 }
 
 BOOST_FILESYSTEM_DECL
@@ -3570,7 +3600,7 @@ void create_symlink(path const& to, path const& from, error_code* ec)
 {
     if (ec)
         ec->clear();
-
+#ifndef __MORPHOS__
 #if defined(BOOST_POSIX_API)
     int err = ::symlink(to.c_str(), from.c_str());
     if (BOOST_UNLIKELY(err < 0))
@@ -3591,6 +3621,7 @@ void create_symlink(path const& to, path const& from, error_code* ec)
     {
         emit_error(BOOST_ERRNO, to, from, ec, "boost::filesystem::create_symlink");
     }
+#endif
 #endif
 }
 
@@ -4330,13 +4361,16 @@ void last_write_time(path const& p, const std::time_t new_time, system::error_co
         emit_error(BOOST_ERRNO, p, ec, "boost::filesystem::last_write_time");
         return;
     }
-
+#if defined(__MORPHOS__)
+    if (mos_utime(p.c_str(), new_time) < 0)
+        emit_error(BOOST_ERRNO, p, ec, "boost::filesystem::last_write_time");
+#else
     ::utimbuf buf;
     buf.actime = st.st_atime; // utime() updates access time too :-(
     buf.modtime = new_time;
     if (BOOST_UNLIKELY(::utime(p.c_str(), &buf) < 0))
         emit_error(BOOST_ERRNO, p, ec, "boost::filesystem::last_write_time");
-
+#endif
 #endif // defined(BOOST_FILESYSTEM_HAS_POSIX_AT_APIS)
 
 #else // defined(BOOST_POSIX_API)
@@ -4469,7 +4503,7 @@ path read_symlink(path const& p, system::error_code* ec)
         ec->clear();
 
     path symlink_path;
-
+#ifndef __MORPHOS__
 #ifdef BOOST_POSIX_API
     const char* const path_str = p.c_str();
     char small_buf[small_path_size];
@@ -4563,7 +4597,7 @@ path read_symlink(path const& p, system::error_code* ec)
 
     symlink_path = convert_nt_path_to_win32_path(buffer + offset / sizeof(wchar_t), len / sizeof(wchar_t));
 #endif
-
+#endif
     return symlink_path;
 }
 
@@ -4650,7 +4684,8 @@ space_info space(path const& p, error_code* ec)
 #if defined(BOOST_FILESYSTEM_USE_WASI)
 
     emit_error(BOOST_ERROR_NOT_SUPPORTED, p, ec, "boost::filesystem::space");
-
+#elif __MORPHOS__
+	// TODO
 #elif defined(BOOST_POSIX_API)
 
     struct BOOST_STATVFS vfs;

@@ -15,8 +15,13 @@
 // in most cases the compiler will do this for you).
 
 #  if defined(BOOST_HAS_UNISTD_H)
+#ifdef __MORPHOS__
+#undef bind
+#endif
 #     include <unistd.h>
-
+#ifdef __MORPHOS__
+#undef bind
+#endif
       // XOpen has <nl_types.h>, but is this the correct version check?
 #     if defined(_XOPEN_VERSION) && (_XOPEN_VERSION >= 3)
 #        define BOOST_HAS_NL_TYPES_H

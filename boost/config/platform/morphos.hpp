@@ -7,6 +7,17 @@
 
 #define BOOST_PLATFORM "MorphOS"
 
+#  ifndef BOOST_HAS_UNISTD_H
+#    define BOOST_HAS_UNISTD_H
+#  endif
+
+#  include <boost/config/detail/posix_features.hpp>
+#  ifndef BOOST_HAS_STDINT_H
+#     define BOOST_HAS_STDINT_H
+#  endif
+
+//
+
 #ifdef __cplusplus
     #include <cstdlib>
 #else
@@ -18,7 +29,13 @@
     #define __STDC_LIMIT_MACROS
 #endif
 
-//#  ifndef BOOST_POSIX_API
-//#    define BOOST_POSIX_API
-//#  endif
-//#include <boost/config/detail/posix_features.hpp>
+#define BOOST_NO_CWCHAR
+#define BOOST_NO_INTRINSIC_WCHAR_T
+ 
+ 
+//#define BOOST_DISABLE_THREADS
+#define BOOST_HAS_PTHREADS 1
+#ifdef BOOST_HAS_PTHREADS
+#  define BOOST_HAS_THREADS
+#endif
+

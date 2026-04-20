@@ -12,8 +12,10 @@
 #if defined BOOST_THREAD_USES_DATETIME
 #include <boost/date_time/posix_time/conversion.hpp>
 #endif
+#ifndef __MORPHOS__
 #ifndef _WIN32
 #include <unistd.h>
+#endif
 #endif
 #ifdef BOOST_THREAD_USES_CHRONO
 #include <boost/chrono/duration.hpp>

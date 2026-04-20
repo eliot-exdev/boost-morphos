@@ -3,9 +3,9 @@
 #
 
 BOOST_VERSION=1.87.0
-BUILD_DIR=/tmp/boost-build
-INSTALL_DIR=boost-${BOOST_VERSION}-morphos-ppc
-PREFIX=/tmp/${INSTALL_DIR}
+BUILD_DIR=boost-build
+INSTALL_DIR=./boost-${BOOST_VERSION}-morphos-ppc
+PREFIX=${INSTALL_DIR}
 USER_CONFIG=user-config.jam
 
 all: package

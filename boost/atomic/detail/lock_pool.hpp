@@ -21,7 +21,7 @@
 #include <boost/atomic/detail/intptr.hpp>
 #if defined(BOOST_WINDOWS)
 #include <boost/winapi/thread.hpp>
-#elif defined(BOOST_HAS_NANOSLEEP)
+#elif defined(BOOST_HAS_NANOSLEEP) || defined(__MORPHOS__)
 #include <time.h>
 #else
 #include <unistd.h>
@@ -40,7 +40,7 @@ BOOST_FORCEINLINE void wait_some() BOOST_NOEXCEPT
 {
 #if defined(BOOST_WINDOWS)
     boost::winapi::SwitchToThread();
-#elif defined(BOOST_HAS_NANOSLEEP)
+#elif defined(BOOST_HAS_NANOSLEEP)  || defined(__MORPHOS__)
     // Do not use sched_yield or pthread_yield as at least on Linux it doesn't block the thread if there are no other
     // pending threads on the current CPU. Proper sleeping is guaranteed to block the thread, which allows other threads
     // to potentially migrate to this CPU and complete the tasks we're waiting for.
