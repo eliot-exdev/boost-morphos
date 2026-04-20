@@ -1,0 +1,53 @@
+#
+# This script cross-compiles Boost for MorphOS PPC on linux
+#
+
+BOOST_VERSION=1.87.0
+BUILD_DIR=/tmp/boost-build
+INSTALL_DIR=boost-${BOOST_VERSION}-morphos-ppc
+PREFIX=/tmp/${INSTALL_DIR}
+USER_CONFIG=user-config.jam
+
+all: package
+
+#--- boostrap ---#
+b2:
+	./bootstrap.sh
+
+#--- cross compile boost for morphos ppc ---#
+boost: b2
+	./b2 cxxflags="-std=c++17" cflags="-noixemul -D__morphos__" toolset=gcc-power link=static threading=single variant=release optimization=speed \
+                --user-config=${USER_CONFIG} \
+                --build-dir=${BUILD_DIR} \
+                --prefix=${PREFIX} \
+                --with-atomic \
+                --with-chrono \
+                --with-program_options \
+                --with-system \
+                --with-random \
+                --with-test \
+                --with-locale \
+                --with-filesystem \
+                --with-iostreams \
+                install
+
+install: boost
+	cp README.md ${PREFIX}/
+	cp README_MORPHOS.md ${PREFIX}/
+	cp LICENSE_1_0.txt ${PREFIX}/
+	cp -r examples_mos ${PREFIX}/
+
+
+package: install
+	cd ${PREFIX}/.. && zip -qr ${INSTALL_DIR}.zip ${INSTALL_DIR}
+	@echo "You can find the boost archive here: ${PREFIX}.zip"
+
+#--- clean ---#
+.PHONY: clean
+clean:
+	rm -f project-config.*
+	rm -f b2
+	rm -f tools/build/src/engine/b2
+	rm -rf ${BUILD_DIR}
+	rm -rf ${PREFIX}
+	rm -f ${PREFIX}/../${INSTALL_DIR}.zip

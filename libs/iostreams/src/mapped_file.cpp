@@ -339,7 +339,7 @@ void mapped_file_impl::try_map_file(param_type p)
             priv ? MAP_PRIVATE : MAP_SHARED,
             handle_, 
             p.offset );
-    if (data == MAP_FAILED)
+    if (data == ((void *)-1)) // was MAP_FAILED
         cleanup_and_throw("failed mapping file");
 #endif
     data_ = static_cast<char*>(data);
