@@ -239,6 +239,64 @@ using boost::system::system_category;
 
 #endif
 
+#ifdef __MORPHOS__
+#include <proto/dos.h>
+#include <dos/dos.h>
+#include <time.h>
+
+int mos_utime(const char *path, time_t new_time)
+{
+    struct DateStamp ds;
+    struct tm *t = gmtime(&new_time);
+
+    if (!t)
+        return -1;
+
+    ds.ds_Days  = (new_time / 86400) + 2922;
+    ds.ds_Minute = (t->tm_hour * 60) + t->tm_min;
+    ds.ds_Tick = t->tm_sec * TICKS_PER_SECOND;
+
+    if (!SetFileDate(path, &ds))
+        return -1;
+
+    return 0;
+}
+
+static bool mos_resolve_path(const char* in, std::string& out)
+{
+    out.clear();
+
+    if (!in || !*in)
+        return false;
+
+    BPTR lock = Lock(const_cast<char*>(in), ACCESS_READ);
+    if (!lock)
+        return false;
+
+    char buf[1024];
+    bool ok = false;
+
+    if (NameFromLock(lock, buf, sizeof(buf)))
+    {
+        out.assign(buf);
+        ok = true;
+    }
+
+    UnLock(lock);
+    return ok;
+}
+
+static bool mos_is_native_absolute_path(const char* p)
+{
+    if (!p || !*p)
+        return false;
+
+    const char* colon = std::strchr(p, ':');
+    return colon && colon != p;
+}
+
+#endif
+
 namespace boost {
 namespace filesystem {
 namespace detail {
@@ -304,6 +362,19 @@ inline bool not_found_error(int errval) noexcept
 {
     return errval == ENOENT || errval == ENOTDIR;
 }
+
+#ifdef __MORPHOS__
+inline path morphos_resolve_if_needed(path const& p)
+{
+    std::string resolved;
+    const char* s = p.c_str();
+
+    if (mos_is_native_absolute_path(s) && mos_resolve_path(s, resolved))
+        return path(resolved);
+
+    return p;
+}
+#endif
 
 /*!
  * Closes a file descriptor and returns the result, similar to close(2). Unlike close(2), guarantees that the file descriptor is closed even if EINTR error happens.
@@ -496,13 +567,19 @@ inline std::size_t get_blksize(struct ::stat const& st) noexcept
 //! status() implementation
 file_status status_impl
 (
-    path const& p,
+    path const& pp,
     system::error_code* ec
 #if defined(BOOST_FILESYSTEM_HAS_POSIX_AT_APIS) || defined(BOOST_FILESYSTEM_USE_STATX)
     , int basedir_fd
 #endif
 )
 {
+#ifdef __MORPHOS__
+    path p = morphos_resolve_if_needed(pp);
+#else
+    path const& p = pp;
+#endif
+
 #if defined(BOOST_FILESYSTEM_USE_STATX)
     struct ::statx path_stat;
     int err = invoke_statx(basedir_fd, p.c_str(), AT_NO_AUTOMOUNT, STATX_TYPE | STATX_MODE, &path_stat);
@@ -557,13 +634,18 @@ file_status status_impl
 //! symlink_status() implementation
 file_status symlink_status_impl
 (
-    path const& p,
+    path const& pp,
     system::error_code* ec
 #if defined(BOOST_FILESYSTEM_HAS_POSIX_AT_APIS) || defined(BOOST_FILESYSTEM_USE_STATX)
     , int basedir_fd
 #endif
 )
 {
+#ifdef __MORPHOS__
+    path p = morphos_resolve_if_needed(pp);
+#else
+    path const& p = pp;
+#endif
 #if defined(BOOST_FILESYSTEM_USE_STATX)
     struct ::statx path_stat;
     int err = invoke_statx(basedir_fd, p.c_str(), AT_SYMLINK_NOFOLLOW | AT_NO_AUTOMOUNT, STATX_TYPE | STATX_MODE, &path_stat);
@@ -622,6 +704,7 @@ namespace {
 //! Flushes buffered data and attributes written to the file to permanent storage
 inline int full_sync(int fd)
 {
+#ifndef __MORPHOS__
     while (true)
     {
 #if defined(__APPLE__) && defined(__MACH__) && defined(F_FULLFSYNC)
@@ -643,7 +726,7 @@ inline int full_sync(int fd)
 
         break;
     }
-
+#endif
     return 0;
 }
 
@@ -2456,6 +2539,16 @@ path absolute_v3(path const& p, path const& base, system::error_code* ec)
     if (ec)
         ec->clear();
 
+#ifdef __MORPHOS__
+    if (mos_is_native_absolute_path(p.c_str()))
+    {
+        std::string resolved;
+        if (mos_resolve_path(p.c_str(), resolved))
+            return path(resolved);
+        return p;
+    }
+#endif
+
     if (p.is_absolute())
         return p;
 
@@ -2517,6 +2610,16 @@ path absolute_v4(path const& p, path const& base, system::error_code* ec)
     if (ec)
         ec->clear();
 
+#ifdef __MORPHOS__
+    if (mos_is_native_absolute_path(p.c_str()))
+    {
+        std::string resolved;
+        if (mos_resolve_path(p.c_str(), resolved))
+            return path(resolved);
+        return p;
+    }
+#endif
+
     if (p.is_absolute())
         return p;
 
@@ -2571,7 +2674,9 @@ namespace {
 inline path canonical_common(path& source, system::error_code* ec)
 {
 #if defined(BOOST_POSIX_API)
-
+#ifdef __MORPHOS__
+    source = morphos_resolve_if_needed(source);
+#endif
     system::error_code local_ec;
     file_status st(detail::status_impl(source, &local_ec));
 
@@ -2794,6 +2899,21 @@ inline path canonical_common(path& source, system::error_code* ec)
 BOOST_FILESYSTEM_DECL
 path canonical_v3(path const& p, path const& base, system::error_code* ec)
 {
+#ifdef __MORPHOS__
+    if (ec)
+        ec->clear();
+
+    if (mos_is_native_absolute_path(p.c_str()))
+    {
+        std::string resolved;
+        if (mos_resolve_path(p.c_str(), resolved))
+            return path(resolved);
+
+        if (ec)
+            ec->assign(errno ? errno : ENOENT, system::system_category());
+        return path();
+    }
+#endif
     path source(detail::absolute_v3(p, base, ec));
     if (ec && *ec)
         return path();
@@ -2804,6 +2924,21 @@ path canonical_v3(path const& p, path const& base, system::error_code* ec)
 BOOST_FILESYSTEM_DECL
 path canonical_v4(path const& p, path const& base, system::error_code* ec)
 {
+#ifdef __MORPHOS__
+    if (ec)
+        ec->clear();
+
+    if (mos_is_native_absolute_path(p.c_str()))
+    {
+        std::string resolved;
+        if (mos_resolve_path(p.c_str(), resolved))
+            return path(resolved);
+
+        if (ec)
+            ec->assign(errno ? errno : ENOENT, system::system_category());
+        return path();
+    }
+#endif
     path source(detail::absolute_v4(p, base, ec));
     if (ec && *ec)
         return path();
@@ -3513,6 +3648,7 @@ void create_directory_symlink(path const& to, path const& from, system::error_co
 {
     if (ec)
         ec->clear();
+#ifndef __MORPHOS__
 
 #if defined(BOOST_POSIX_API)
     int err = ::symlink(to.c_str(), from.c_str());
@@ -3534,6 +3670,8 @@ void create_directory_symlink(path const& to, path const& from, system::error_co
         emit_error(BOOST_ERRNO, to, from, ec, "boost::filesystem::create_directory_symlink");
     }
 #endif
+	
+#endif
 }
 
 BOOST_FILESYSTEM_DECL
@@ -3541,7 +3679,7 @@ void create_hard_link(path const& to, path const& from, error_code* ec)
 {
     if (ec)
         ec->clear();
-
+#ifndef __MORPHOS__
 #if defined(BOOST_POSIX_API)
     int err = ::link(to.c_str(), from.c_str());
     if (BOOST_UNLIKELY(err < 0))
@@ -3563,6 +3701,7 @@ void create_hard_link(path const& to, path const& from, error_code* ec)
         emit_error(BOOST_ERRNO, to, from, ec, "boost::filesystem::create_hard_link");
     }
 #endif
+#endif
 }
 
 BOOST_FILESYSTEM_DECL
@@ -3570,7 +3709,7 @@ void create_symlink(path const& to, path const& from, error_code* ec)
 {
     if (ec)
         ec->clear();
-
+#ifndef __MORPHOS__
 #if defined(BOOST_POSIX_API)
     int err = ::symlink(to.c_str(), from.c_str());
     if (BOOST_UNLIKELY(err < 0))
@@ -3591,6 +3730,7 @@ void create_symlink(path const& to, path const& from, error_code* ec)
     {
         emit_error(BOOST_ERRNO, to, from, ec, "boost::filesystem::create_symlink");
     }
+#endif
 #endif
 }
 
@@ -3670,7 +3810,12 @@ void current_path(path const& p, system::error_code* ec)
 #if defined(BOOST_FILESYSTEM_USE_WASI)
     emit_error(BOOST_ERROR_NOT_SUPPORTED, p, ec, "boost::filesystem::current_path");
 #else
+#ifdef __MORPHOS__
+    path pp = morphos_resolve_if_needed(p);
+    error(!BOOST_SET_CURRENT_DIRECTORY(pp.c_str()) ? BOOST_ERRNO : 0, p, ec, "boost::filesystem::current_path");
+#else
     error(!BOOST_SET_CURRENT_DIRECTORY(p.c_str()) ? BOOST_ERRNO : 0, p, ec, "boost::filesystem::current_path");
+#endif
 #endif
 }
 
@@ -4330,13 +4475,16 @@ void last_write_time(path const& p, const std::time_t new_time, system::error_co
         emit_error(BOOST_ERRNO, p, ec, "boost::filesystem::last_write_time");
         return;
     }
-
+#if defined(__MORPHOS__)
+    if (mos_utime(p.c_str(), new_time) < 0)
+        emit_error(BOOST_ERRNO, p, ec, "boost::filesystem::last_write_time");
+#else
     ::utimbuf buf;
     buf.actime = st.st_atime; // utime() updates access time too :-(
     buf.modtime = new_time;
     if (BOOST_UNLIKELY(::utime(p.c_str(), &buf) < 0))
         emit_error(BOOST_ERRNO, p, ec, "boost::filesystem::last_write_time");
-
+#endif
 #endif // defined(BOOST_FILESYSTEM_HAS_POSIX_AT_APIS)
 
 #else // defined(BOOST_POSIX_API)
@@ -4469,7 +4617,7 @@ path read_symlink(path const& p, system::error_code* ec)
         ec->clear();
 
     path symlink_path;
-
+#ifndef __MORPHOS__
 #ifdef BOOST_POSIX_API
     const char* const path_str = p.c_str();
     char small_buf[small_path_size];
@@ -4563,7 +4711,7 @@ path read_symlink(path const& p, system::error_code* ec)
 
     symlink_path = convert_nt_path_to_win32_path(buffer + offset / sizeof(wchar_t), len / sizeof(wchar_t));
 #endif
-
+#endif
     return symlink_path;
 }
 
@@ -4650,7 +4798,8 @@ space_info space(path const& p, error_code* ec)
 #if defined(BOOST_FILESYSTEM_USE_WASI)
 
     emit_error(BOOST_ERROR_NOT_SUPPORTED, p, ec, "boost::filesystem::space");
-
+#elif __MORPHOS__
+	// TODO
 #elif defined(BOOST_POSIX_API)
 
     struct BOOST_STATVFS vfs;

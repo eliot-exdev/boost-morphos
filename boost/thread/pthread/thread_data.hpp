@@ -33,8 +33,11 @@
 #endif
 
 #include <pthread.h>
+#ifndef __MORPHOS__
+
 #include <unistd.h>
 
+#endif
 #include <boost/config/abi_prefix.hpp>
 
 namespace boost
@@ -52,6 +55,9 @@ namespace boost
         // stack
         void set_stack_size(std::size_t size) BOOST_NOEXCEPT {
           if (size==0) return;
+#ifdef __MORPHOS__
+		  return;
+#else
 #ifdef BOOST_THREAD_USES_GETPAGESIZE
           std::size_t page_size = getpagesize();
 #else
@@ -63,6 +69,7 @@ namespace boost
           size = ((size+page_size-1)/page_size)*page_size;
           int res = pthread_attr_setstacksize(&val_, size);
           BOOST_VERIFY(!res && "pthread_attr_setstacksize failed");
+#endif
         }
 
         std::size_t get_stack_size() const BOOST_NOEXCEPT {

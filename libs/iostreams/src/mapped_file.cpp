@@ -330,6 +330,55 @@ void mapped_file_impl::try_map_file(param_type p)
             (LPVOID) p.hint );
     if (!data)
         cleanup_and_throw("failed mapping view");
+#elif defined(__MORPHOS__)
+
+    void* data = 0;
+
+    if (size_ == 0) {
+        data_ = 0;
+        return;
+    }
+
+    char* buffer = static_cast<char*>(std::malloc(static_cast<std::size_t>(size_)));
+    if (!buffer) {
+        errno = ENOMEM;
+        cleanup_and_throw("failed allocating mapped buffer");
+    }
+
+    // Seek to mapping start
+    if (::lseek(handle_, static_cast<off_t>(p.offset), SEEK_SET) == (off_t)-1) {
+        std::free(buffer);
+        cleanup_and_throw("failed seeking mapped file");
+    }
+
+    // Read requested range
+    std::size_t total = 0;
+    while (total < static_cast<std::size_t>(size_)) {
+        ssize_t amt =
+            ::read(handle_,
+                   buffer + total,
+                   static_cast<std::size_t>(size_) - total);
+
+        if (amt < 0) {
+            int saved = errno;
+            std::free(buffer);
+            errno = saved;
+            cleanup_and_throw("failed reading mapped file");
+        }
+
+        if (amt == 0)
+            break;
+
+        total += static_cast<std::size_t>(amt);
+    }
+
+    // Zero-fill short read region, if any
+    if (total < static_cast<std::size_t>(size_)) {
+        std::memset(buffer + total, 0, static_cast<std::size_t>(size_) - total);
+    }
+
+    data = buffer;
+
 #else
     void* data = 
         ::BOOST_IOSTREAMS_FD_MMAP( 
@@ -367,6 +416,33 @@ bool mapped_file_impl::unmap_file()
     error = !::CloseHandle(mapped_handle_) || error;
     mapped_handle_ = NULL;
     return !error;
+#elif defined(__MORPHOS__)
+    if (!data_)
+        return true;
+
+    bool ok = true;
+
+    if (flags() == mapped_file::readwrite) {
+        if (::lseek(handle_, static_cast<off_t>(params_.offset), SEEK_SET) == (off_t)-1) {
+            ok = false;
+        } else {
+            std::size_t total = 0;
+            std::size_t len = static_cast<std::size_t>(size_);
+
+            while (total < len) {
+                ssize_t amt = ::write(handle_, data_ + total, len - total);
+                if (amt <= 0) {
+                    ok = false;
+                    break;
+                }
+                total += static_cast<std::size_t>(amt);
+            }
+        }
+    }
+
+    std::free(data_);
+    data_ = 0;
+    return ok;
 #else
     return ::munmap(data_, size_) == 0;
 #endif

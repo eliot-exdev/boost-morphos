@@ -431,6 +431,8 @@
   #if defined(__ANDROID_API__) && __ANDROID_API__ >= 21
     #define BOOST_THREAD_INTERNAL_CLOCK_IS_MONO
   #endif
+#elif __MORPHOS__
+	#include <time.h> // check for CLOCK_MONOTONIC
 #else
   #include <time.h> // check for CLOCK_MONOTONIC
   #if defined(CLOCK_MONOTONIC)

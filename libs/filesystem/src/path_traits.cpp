@@ -12,6 +12,9 @@
 #include "platform_config.hpp"
 
 #include <boost/filesystem/config.hpp>
+#ifdef __MORPHOS__
+#undef bind
+#endif
 #include <boost/filesystem/detail/path_traits.hpp>
 #include <boost/filesystem/path.hpp>
 #include <boost/system/system_error.hpp>

@@ -14,6 +14,9 @@
 #include "platform_config.hpp"
 
 #include <boost/filesystem/config.hpp>
+#ifdef __MORPHOS__
+#undef bind
+#endif
 #include <boost/filesystem/directory.hpp>
 #include <boost/filesystem/exception.hpp>
 #include <boost/filesystem/operations.hpp>
